@@ -5,15 +5,15 @@ class Emulator:
         """
 
         # registers
-        self.acc: int = 0                                       # accumulator
-        self.program_counter: int = 0                           # program counter
-        self.stack_pointer: int = 0                             # stack pointer
-        self.interrupt_register: list[int] = [0, 0, 0, 0, 0]    # interrupt register
-        self.carry_flag: bool = False                           # carry flag
+        self.acc: int = 0                                                   # accumulator
+        self.program_counter: int = 0                                       # program counter
+        self.stack_pointer: int = 0                                         # stack pointer
+        self.interrupt_register: list[bool] = [False, False, False, False]  # interrupt register
+        self.carry_flag: bool = False                                       # carry flag
 
         # page registers
-        self.cache_page: int = 0                                # cache page
-        self.rom_page: int = 0                                  # ROM page
+        self.cache_page: int = 0                                            # cache page
+        self.rom_page: int = 0                                              # ROM page
 
         # memory
         self.rom: bytearray = bytearray([0 for _ in range(2**16 * 2)])
@@ -26,6 +26,7 @@ class Emulator:
         :param instructions: instructions
         """
 
+        print("Loading the instructions...")
         for idx in range(0, len(instructions), 2):
             value_high = instructions[idx]
             value_low = instructions[idx + 1]
@@ -39,7 +40,8 @@ class Emulator:
             data = (value >> 7) & 0b1111_1111
             opcode = value & 0b111_1111
 
-            print(memory_flag, data, opcode)
+            print("\t", memory_flag, data, opcode)
+        print("Instructions are loaded successfully!", end="\n\n")
 
     def _check_carry(self):
         if self.acc > 255:
@@ -56,15 +58,18 @@ class Emulator:
 
     def _set_interrupt_register(self,
                                 is_halted: bool = False,
-                                interrupt: bool = False):
+                                interrupt: bool = False,
+                                wrong: bool = False):
         # 5 bit register
         # 1 | 2 | 3 | 4 | 5
         # 1 - is_halted
         # 2 - interrupt
-        # 3, 4, 5 - reserved
+        # 3 - wrong (instruction)
+        # 4, 5 - reserved
 
         self.interrupt_register[0] = is_halted
         self.interrupt_register[1] = interrupt
+        self.interrupt_register[2] = wrong
 
     def execute_step(self):
         """
@@ -276,6 +281,7 @@ class Emulator:
                 return
 
             case _:
+                self._set_interrupt_register(wrong=True)
                 return
 
         # increment the program counter
@@ -291,3 +297,6 @@ class Emulator:
         Executes the entire file
         :return:
         """
+
+        while not any(self.interrupt_register):
+            self.execute_step()

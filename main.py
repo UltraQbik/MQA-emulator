@@ -32,6 +32,7 @@ def main():
 
     emulator = Emulator()
     emulator.load_instructions(content)
+    emulator.execute_whole()
 
 
 if __name__ == '__main__':
