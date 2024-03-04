@@ -30,6 +30,9 @@ def main():
     with open(args.input, "rb") as file:
         content = file.read()
 
+    emulator = Emulator()
+    emulator.load_instructions(content)
+
 
 if __name__ == '__main__':
     main()
