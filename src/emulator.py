@@ -1,3 +1,6 @@
+import math
+
+
 class Emulator:
     def __init__(self):
         """
@@ -173,8 +176,9 @@ class Emulator:
                 self._check_carry()
             case 21:
                 # RSC
+                if ((self.acc >> rom_cache_bus) << rom_cache_bus) != self.acc:
+                    self.carry_flag = True
                 self.acc = self.acc >> rom_cache_bus
-                # TODO: make carry flag work
             case 22:
                 # CMP
                 negative = (self.acc & 0b1000_0000) ^ (rom_cache_bus & 0b1000_0000)
@@ -228,12 +232,14 @@ class Emulator:
                 self.acc = self.acc % rom_cache_bus
             case 40:
                 # TSE
-                # TODO: make sin
-                pass
+                sin = (math.sin(self.acc / 32) + 1) / 2
+                sin = int(sin * 255)
+                self.acc = sin
             case 41:
                 # TCE
-                # TODO: make cos
-                pass
+                cos = (math.cos(self.acc / 32) + 1) / 2
+                cos = int(cos * 255)
+                self.acc = cos
             case 42:
                 # ADD
                 self.acc = self.acc + rom_cache_bus
