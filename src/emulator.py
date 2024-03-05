@@ -202,7 +202,7 @@ class Emulator:
                 self._check_carry()
             case 33:
                 # SBC
-                self.acc = self.acc - rom_cache_bus + self.carry_flag
+                self.acc = self.acc - rom_cache_bus - self.carry_flag
                 self._check_neg_carry()
             case 34:
                 # INC
