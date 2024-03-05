@@ -4,7 +4,7 @@ from src import Emulator
 
 
 parser = argparse.ArgumentParser(description="Emulates .mqa execution files for Mini Quantum CPU")
-parser.add_argument("-i", "--input", type=str, help="executable file", required=True)
+parser.add_argument("input", type=str, help="executable file")
 parser.add_argument("--allow-files", help="allows to read / write files",
                     action="store_true")
 parser.add_argument("--allow-network", help="allows the use of sockets",
