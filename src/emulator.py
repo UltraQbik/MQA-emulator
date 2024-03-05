@@ -218,9 +218,7 @@ class Emulator:
                     self.acc = ((255 - self.acc) + 1) % 256
             case 37:
                 # MUL
-                self.acc = self.acc * rom_cache_bus
-                if self.acc > 255:
-                    self.acc = self.acc % 256
+                self.acc = (self.acc * rom_cache_bus) & 255
             case 38:
                 # DIV
                 self.acc = self.acc // rom_cache_bus
@@ -251,8 +249,7 @@ class Emulator:
                 pass
             case 45:
                 # MULH
-                # TODO: make multiplication high
-                pass
+                self.acc = ((self.acc * rom_cache_bus) & 0b1111_1111_0000_0000) >> 8
 
             case 48:
                 # UI
