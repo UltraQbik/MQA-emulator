@@ -245,8 +245,10 @@ class Emulator:
                 self._check_neg_carry()
             case 44:
                 # RPL
-                # TODO: make reciprocals
-                pass
+                if rom_cache_bus == 0:
+                    self.acc = 255
+                else:
+                    self.acc = int(255 / rom_cache_bus)
             case 45:
                 # MULH
                 self.acc = ((self.acc * rom_cache_bus) & 0b1111_1111_0000_0000) >> 8
