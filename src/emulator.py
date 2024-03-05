@@ -21,6 +21,7 @@ class Emulator:
         # memory
         self.rom: bytearray = bytearray([0 for _ in range(2**16 * 2)])
         self.cache: bytearray = bytearray([0 for _ in range(2**16)])
+        self.stack: bytearray = bytearray([0 for _ in range(256)])
         self.ports: bytearray = bytearray([0 for _ in range(256)])
 
     def load_instructions(self, instructions: bytes):
@@ -115,36 +116,32 @@ class Emulator:
                 self.cache[data + self.cache_page * 256] = self.acc
             case 3:
                 # CALL
-                # TODO: make subroutine calls
-                pass
+                self.stack[self.stack_pointer] = self.program_counter
+                self.stack_pointer = (self.stack_pointer + 1) % 256
+                self.program_counter = rom_cache_bus - 1
             case 4:
                 # RET
-                # TODO: make subroutine returns
-                pass
+                self.stack_pointer = (self.stack_pointer - 1) % 256
+                self.program_counter = self.stack[self.stack_pointer] - 1
             case 5:
                 # JMP
-                self.program_counter = rom_cache_bus
-                self.program_counter -= 1
+                self.program_counter = rom_cache_bus - 1
             case 6:
                 # JMPP
                 if self.acc != 0:
-                    self.program_counter = rom_cache_bus
-                    self.program_counter -= 1
+                    self.program_counter = rom_cache_bus - 1
             case 7:
                 # JMPZ
                 if self.acc == 0:
-                    self.program_counter = rom_cache_bus
-                    self.program_counter -= 1
+                    self.program_counter = rom_cache_bus - 1
             case 8:
                 # JMPN
                 if (self.acc & 0b1000_0000) > 0:
-                    self.program_counter = rom_cache_bus
-                    self.program_counter -= 1
+                    self.program_counter = rom_cache_bus - 1
             case 9:
                 # JMPC
                 if self.carry_flag:
-                    self.program_counter = rom_cache_bus
-                    self.program_counter -= 1
+                    self.program_counter = rom_cache_bus - 1
             case 10:
                 # CCF
                 self.carry_flag = False
