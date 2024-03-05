@@ -253,8 +253,13 @@ class Emulator:
 
             case 48:
                 # UI
-                # TODO: make user input
-                pass
+                user = input("> ")
+                try:
+                    self.acc = int(user)
+                except ValueError:
+                    self.acc = ord(user[0])
+                except IndexError:
+                    self.acc = 0
             case 49:
                 # UO
                 print(self.acc)
