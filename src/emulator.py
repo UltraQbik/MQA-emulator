@@ -97,7 +97,7 @@ class Emulator:
         opcode = value & 0b111_1111
 
         # if the memory flag is on, then the value is taken from cache
-        if memory_flag:
+        if memory_flag and opcode != 2:
             rom_cache_bus = self.cache[data]
         else:
             rom_cache_bus = data
