@@ -50,11 +50,15 @@ class Emulator:
     def _check_carry(self):
         if self.acc > 255:
             self.carry_flag = True
+        else:
+            self.carry_flag = False
         self.acc = self.acc % 256
 
     def _check_neg_carry(self):
         if self.acc < 0:
             self.carry_flag = True
+        else:
+            self.carry_flag = False
         self.acc = self.acc % 256
 
     def _is_acc_neg(self):
@@ -305,5 +309,8 @@ class Emulator:
         :return:
         """
 
+        count = 0
         while not any(self.interrupt_register):
             self.execute_step()
+            count += 1
+        print(f"\n{'='*120}\nFinished after: {count} instructions")
