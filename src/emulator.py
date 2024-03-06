@@ -45,7 +45,7 @@ class Emulator:
             opcode = value & 0b111_1111
 
             print("\t", memory_flag, data, opcode)
-        print("Instructions are loaded successfully!", end="\n\n")
+        print("Instructions were loaded successfully!", end="\n\n")
 
     def _check_carry(self):
         if self.acc > 255:
@@ -83,10 +83,6 @@ class Emulator:
         """
         Executes one step of the CPU
         """
-
-        # if any of the interrupts are enabled
-        if any(self.interrupt_register):
-            return
 
         # fetch the instruction bytes
         value_high = self.rom[self.program_counter * 2]
@@ -286,22 +282,19 @@ class Emulator:
             case 126:
                 # INT
                 self._set_interrupt_register(interrupt=True)
+                self.program_counter += 1
+                raise StopIteration
             case 127:
                 # HALT
                 self._set_interrupt_register(is_halted=True)
-                return
+                raise StopIteration
 
             case _:
                 self._set_interrupt_register(wrong=True)
-                return
+                raise StopIteration
 
         # increment the program counter
-        # note: inside the jump instructions there are '-= 1' things
-        # they exist to jump to the right place
         self.program_counter += 1
-
-        # safety check
-        self.acc = self.acc % 256
 
     def execute_whole(self):
         """
@@ -310,7 +303,10 @@ class Emulator:
         """
 
         count = 0
-        while not any(self.interrupt_register):
-            self.execute_step()
+        while True:
+            try:
+                self.execute_step()
+            except StopIteration:
+                break
             count += 1
         print(f"\n{'='*120}\nFinished after: {count} instructions")
