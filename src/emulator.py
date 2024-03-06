@@ -48,18 +48,12 @@ class Emulator:
         print("Instructions were loaded successfully!", end="\n\n")
 
     def _check_carry(self):
-        if self.acc > 255:
-            self.carry_flag = True
-        else:
-            self.carry_flag = False
-        self.acc = self.acc % 256
+        self.carry_flag = self.acc > 255
+        self.acc = self.acc & 255
 
     def _check_neg_carry(self):
-        if self.acc < 0:
-            self.carry_flag = True
-        else:
-            self.carry_flag = False
-        self.acc = self.acc % 256
+        self.carry_flag = self.acc < 0
+        self.acc = self.acc & 255
 
     def _is_acc_neg(self):
         return (self.acc & 0b1000_0000) > 0
@@ -117,11 +111,11 @@ class Emulator:
             case 3:
                 # CALL
                 self.stack[self.stack_pointer] = self.program_counter
-                self.stack_pointer = (self.stack_pointer + 1) % 256
+                self.stack_pointer = (self.stack_pointer + 1) & 255
                 self.program_counter = rom_cache_bus - 1
             case 4:
                 # RET
-                self.stack_pointer = (self.stack_pointer - 1) % 256
+                self.stack_pointer = (self.stack_pointer - 1) & 255
                 self.program_counter = self.stack[self.stack_pointer] - 1
             case 5:
                 # JMP
@@ -215,7 +209,7 @@ class Emulator:
             case 36:
                 # ABS
                 if self._is_acc_neg():
-                    self.acc = ((255 - self.acc) + 1) % 256
+                    self.acc = ((255 - self.acc) + 1) & 255
             case 37:
                 # MUL
                 self.acc = (self.acc * rom_cache_bus) & 255
