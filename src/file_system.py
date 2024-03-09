@@ -94,4 +94,4 @@ class FileManager:
                     return
 
                 # write into file
-                file.write(bytes(emu.cache[ptr + i]))
+                file.write(bytes([emu.cache[ptr + i]]))
