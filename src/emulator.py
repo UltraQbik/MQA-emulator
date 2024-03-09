@@ -83,7 +83,7 @@ class Emulator:
     def _is_2(self, rom_cache_bus, data):
         # SRA
         # address comes only from data (otherwise nothing will work)
-        self.cache[data + self.cache_page * 256] = self.acc
+        self.cache[(self.cache_page << 8) + data] = self.acc
 
     def _is_3(self, rom_cache_bus, data):
         # CALL
@@ -98,27 +98,27 @@ class Emulator:
 
     def _is_5(self, rom_cache_bus, data):
         # JMP
-        self.program_counter = rom_cache_bus - 1
+        self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_6(self, rom_cache_bus, data):
         # JMPP
         if self.acc != 0:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_7(self, rom_cache_bus, data):
         # JMPZ
         if self.acc == 0:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_8(self, rom_cache_bus, data):
         # JMPN
         if (self.acc & 0b1000_0000) > 0:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_9(self, rom_cache_bus, data):
         # JMPC
         if self.carry_flag:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_10(self, rom_cache_bus, data):
         # CCF
@@ -126,7 +126,7 @@ class Emulator:
 
     def _is_11(self, rom_cache_bus, data):
         # LRP
-        self.acc = self.cache[self.acc + self.cache_page]
+        self.acc = self.cache[(self.cache_page << 8) + self.acc]
 
     def _is_12(self, rom_cache_bus, data):
         # CCP
@@ -339,7 +339,7 @@ class Emulator:
 
         # if the memory flag is on, then the value is taken from cache
         if memory_flag and opcode != 2:
-            rom_cache_bus = self.cache[data]
+            rom_cache_bus = self.cache[(self.cache_page << 8) + data]
         else:
             rom_cache_bus = data
 
