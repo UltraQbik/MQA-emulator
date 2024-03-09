@@ -1,6 +1,6 @@
 import math
-from .emu_types import *
-from .file_system import FileManager
+from ._emu_types import *
+from ._file_system import FileManager
 
 
 class Emulator:

@@ -1,9 +1,9 @@
 import os
 import argparse
-from src import Emulator
+from . import Emulator
 
 
-parser = argparse.ArgumentParser(description="Emulates .mqa execution files for Mini Quantum CPU")
+parser = argparse.ArgumentParser(prog="mqe", description="Emulates .mqa execution files for Mini Quantum CPU")
 parser.add_argument("input", type=str, help="executable file")
 parser.add_argument("--allow-files", help="allows to read / write files",
                     action="store_true")
