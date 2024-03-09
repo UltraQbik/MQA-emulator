@@ -66,7 +66,7 @@ class FileManager:
                     return
 
                 # write into cache
-                emu.cache[ptr + offset] = int(value)
+                emu.cache[ptr + offset] = value
                 offset += 1
 
     @staticmethod
