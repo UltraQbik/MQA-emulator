@@ -1,8 +1,10 @@
 import math
+from .emu_types import *
+from .file_system import FileManager
 
 
 class Emulator:
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Emulator class, which does do the emulation thing.
         """
@@ -11,8 +13,8 @@ class Emulator:
         self.acc: int = 0                                                   # accumulator
         self.program_counter: int = 0                                       # program counter
         self.stack_pointer: int = 0                                         # stack pointer
-        self.interrupt_register: list[bool] = [False, False, False, False]  # interrupt register
         self.carry_flag: bool = False                                       # carry flag
+        self.interrupt_register: InterruptRegister = InterruptRegister()    # interrupt register
 
         # page registers
         self.cache_page: int = 0                                            # cache page
@@ -23,6 +25,10 @@ class Emulator:
         self.cache: bytearray = bytearray([0 for _ in range(2**16)])
         self.stack: bytearray = bytearray([0 for _ in range(256)])
         self.ports: bytearray = bytearray([0 for _ in range(256)])
+
+        # interrupt extensions
+        self.allow_files: bool = kwargs.get("allow_files", False)
+        self.allow_sockets: bool = kwargs.get("allow_sockets", False)
 
         # instruction switch case
         self.instruction_set: list = [None for _ in range(128)]
@@ -65,21 +71,6 @@ class Emulator:
 
     def _is_acc_neg(self):
         return (self.acc & 0b1000_0000) > 0
-
-    def _set_interrupt_register(self,
-                                is_halted: bool = False,
-                                interrupt: bool = False,
-                                wrong: bool = False):
-        # 5 bit register
-        # 1 | 2 | 3 | 4 | 5
-        # 1 - is_halted
-        # 2 - interrupt
-        # 3 - wrong (instruction)
-        # 4, 5 - reserved
-
-        self.interrupt_register[0] = is_halted
-        self.interrupt_register[1] = interrupt
-        self.interrupt_register[2] = wrong
 
     def _is_0(self, rom_cache_bus, data):
         # NOP
@@ -295,18 +286,39 @@ class Emulator:
 
     def _is_126(self, rom_cache_bus, data):
         # INT
-        self._set_interrupt_register(interrupt=True)
-        self.program_counter += 1
-        raise StopIteration
+        self._process_interrupt()
 
     def _is_127(self, rom_cache_bus, data):
         # HALT
-        self._set_interrupt_register(is_halted=True)
+        self.interrupt_register.is_halted = True
         raise StopIteration
 
     def _is__(self, rom_cache_bus, data):
-        self._set_interrupt_register(wrong=True)
         raise StopIteration
+
+    def _process_interrupt(self):
+        """
+        Processes the interrupt
+        """
+
+        # FileManager - 0
+        if self.allow_files and self.ports[0] == 0:
+            FileManager.process(
+                self,                           # emulator
+                self.ports[1],                  # operation (0 - read, 1 - write)
+                self.ports[2], self.ports[3],   # filepath pointer (16 bits)
+                self.ports[4], self.ports[5]    # size (16 bits)
+            )
+
+        # Sockets - 1
+        elif self.allow_sockets and self.ports[0] == 1:
+            pass
+
+        # nothing allowed
+        else:
+            # enable interrupt and die
+            self.interrupt_register.interrupt = True
+            raise StopIteration
 
     def execute_step(self):
         """

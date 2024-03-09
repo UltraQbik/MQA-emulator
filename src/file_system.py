@@ -1,5 +1,4 @@
 import os
-from .emulator import Emulator
 
 
 """
@@ -10,7 +9,7 @@ If you will accidentally rewrite and mess up you system files or drivers, it is 
 
 class FileManager:
     @classmethod
-    def process(cls, emu: Emulator, operation: int, ptr_low: int, ptr_high: int, size_low: int, size_high: int):
+    def process(cls, emu, operation: int, ptr_low: int, ptr_high: int, size_low: int, size_high: int):
         """
         Processes all file related interrupt calls
         :param emu: emulator
@@ -30,7 +29,7 @@ class FileManager:
             cls.write_file(emu, ptr, size)
 
     @staticmethod
-    def read_file(emu: Emulator, ptr: int, size: int):
+    def read_file(emu, ptr: int, size: int):
         """
         Reads the file, and writes its bytes into cache. If any error occurs, it will simply die
         :param emu: emulator
@@ -65,7 +64,7 @@ class FileManager:
                 emu.cache[ptr + i] = int(value)
 
     @staticmethod
-    def write_file(emu: Emulator, ptr: int, size: int):
+    def write_file(emu, ptr: int, size: int):
         """
         Writes to a file. If any error occurs, it will simply die.
         :param emu: emulator

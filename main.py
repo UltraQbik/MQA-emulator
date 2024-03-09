@@ -30,7 +30,9 @@ def main():
     with open(args.input, "rb") as file:
         content = file.read()
 
-    emulator = Emulator()
+    emulator = Emulator(
+        allow_files=args.allow_files,
+        allow_sockets=args.allow_sockets)
     emulator.load_instructions(content)
     emulator.execute_whole()
 
