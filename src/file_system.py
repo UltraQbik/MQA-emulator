@@ -48,11 +48,16 @@ class FileManager:
         if not os.path.isfile(path):
             return
 
+        # if no size is given, just assume it's all of it
+        if size == 0:
+            size = -1
+
         # read the file (character by character)
         with open(path, "rb") as file:
-            for i in range(size):
+            offset = 0
+            while offset != size:
                 # check if the pointer exceeds cache
-                if ptr + i > 65535:
+                if ptr + offset > 65535:
                     return
 
                 # fetch a character
@@ -61,7 +66,8 @@ class FileManager:
                     return
 
                 # write into cache
-                emu.cache[ptr + i] = int(value)
+                emu.cache[ptr + offset] = int(value)
+                offset += 1
 
     @staticmethod
     def write_file(emu, ptr: int, size: int):
