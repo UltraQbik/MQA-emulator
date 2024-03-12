@@ -154,14 +154,14 @@ class Emulator:
 
     def _is_20(self, rom_cache_bus, data):
         # LSC
-        self.acc = self.acc << rom_cache_bus
+        self.acc = (self.acc << rom_cache_bus) + self.carry_flag
         self._check_carry()
 
     def _is_21(self, rom_cache_bus, data):
         # RSC
         if ((self.acc >> rom_cache_bus) << rom_cache_bus) != self.acc:
             self.carry_flag = True
-        self.acc = self.acc >> rom_cache_bus
+        self.acc = (self.acc >> rom_cache_bus) + (self.carry_flag << 8)
 
     def _is_22(self, rom_cache_bus, data):
         # CMP
