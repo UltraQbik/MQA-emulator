@@ -1,13 +1,13 @@
 import os
 import argparse
-from src import Emulator
+from . import Emulator
 
 
-parser = argparse.ArgumentParser(description="Emulates .mqa execution files for Mini Quantum CPU")
+parser = argparse.ArgumentParser(prog="mqe", description="Emulates .mqa execution files for Mini Quantum CPU")
 parser.add_argument("input", type=str, help="executable file")
 parser.add_argument("--allow-files", help="allows to read / write files",
                     action="store_true")
-parser.add_argument("--allow-network", help="allows the use of sockets",
+parser.add_argument("--allow-sockets", help="allows the use of sockets",
                     action="store_true")
 args = parser.parse_args()
 
@@ -30,7 +30,9 @@ def main():
     with open(args.input, "rb") as file:
         content = file.read()
 
-    emulator = Emulator()
+    emulator = Emulator(
+        allow_files=args.allow_files,
+        allow_sockets=args.allow_sockets)
     emulator.load_instructions(content)
     emulator.execute_whole()
 

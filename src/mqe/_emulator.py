@@ -1,8 +1,10 @@
 import math
+from ._emu_types import *
+from ._file_system import FileManager
 
 
 class Emulator:
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Emulator class, which does do the emulation thing.
         """
@@ -10,9 +12,10 @@ class Emulator:
         # registers
         self.acc: int = 0                                                   # accumulator
         self.program_counter: int = 0                                       # program counter
-        self.stack_pointer: int = 0                                         # stack pointer
-        self.interrupt_register: list[bool] = [False, False, False, False]  # interrupt register
+        self.acc_stack_pointer: int = 0                                     # acc stack pointer
+        self.adr_stack_pointer: int = 0                                     # stack pointer
         self.carry_flag: bool = False                                       # carry flag
+        self.interrupt_register: InterruptRegister = InterruptRegister()    # interrupt register
 
         # page registers
         self.cache_page: int = 0                                            # cache page
@@ -21,8 +24,13 @@ class Emulator:
         # memory
         self.rom: bytearray = bytearray([0 for _ in range(2**16 * 2)])
         self.cache: bytearray = bytearray([0 for _ in range(2**16)])
-        self.stack: bytearray = bytearray([0 for _ in range(256)])
+        self.acc_stack: bytearray = bytearray([0 for _ in range(256)])
+        self.adr_stack: bytearray = bytearray([0 for _ in range(256)])
         self.ports: bytearray = bytearray([0 for _ in range(256)])
+
+        # interrupt extensions
+        self.allow_files: bool = kwargs.get("allow_files", False)
+        self.allow_sockets: bool = kwargs.get("allow_sockets", False)
 
         # instruction switch case
         self.instruction_set: list = [None for _ in range(128)]
@@ -66,21 +74,6 @@ class Emulator:
     def _is_acc_neg(self):
         return (self.acc & 0b1000_0000) > 0
 
-    def _set_interrupt_register(self,
-                                is_halted: bool = False,
-                                interrupt: bool = False,
-                                wrong: bool = False):
-        # 5 bit register
-        # 1 | 2 | 3 | 4 | 5
-        # 1 - is_halted
-        # 2 - interrupt
-        # 3 - wrong (instruction)
-        # 4, 5 - reserved
-
-        self.interrupt_register[0] = is_halted
-        self.interrupt_register[1] = interrupt
-        self.interrupt_register[2] = wrong
-
     def _is_0(self, rom_cache_bus, data):
         # NOP
         pass
@@ -92,42 +85,42 @@ class Emulator:
     def _is_2(self, rom_cache_bus, data):
         # SRA
         # address comes only from data (otherwise nothing will work)
-        self.cache[data + self.cache_page * 256] = self.acc
+        self.cache[(self.cache_page << 8) + data] = self.acc
 
     def _is_3(self, rom_cache_bus, data):
         # CALL
-        self.stack[self.stack_pointer] = self.program_counter
-        self.stack_pointer = (self.stack_pointer + 1) & 255
+        self.adr_stack[self.adr_stack_pointer] = self.program_counter
+        self.adr_stack_pointer = (self.adr_stack_pointer + 1) & 255
         self.program_counter = rom_cache_bus - 1
 
     def _is_4(self, rom_cache_bus, data):
         # RET
-        self.stack_pointer = (self.stack_pointer - 1) & 255
-        self.program_counter = self.stack[self.stack_pointer] - 1
+        self.adr_stack_pointer = (self.adr_stack_pointer - 1) & 255
+        self.program_counter = self.adr_stack[self.adr_stack_pointer] - 1
 
     def _is_5(self, rom_cache_bus, data):
         # JMP
-        self.program_counter = rom_cache_bus - 1
+        self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_6(self, rom_cache_bus, data):
         # JMPP
         if self.acc != 0:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_7(self, rom_cache_bus, data):
         # JMPZ
         if self.acc == 0:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_8(self, rom_cache_bus, data):
         # JMPN
         if (self.acc & 0b1000_0000) > 0:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_9(self, rom_cache_bus, data):
         # JMPC
         if self.carry_flag:
-            self.program_counter = rom_cache_bus - 1
+            self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_10(self, rom_cache_bus, data):
         # CCF
@@ -135,7 +128,7 @@ class Emulator:
 
     def _is_11(self, rom_cache_bus, data):
         # LRP
-        self.acc = self.cache[self.acc + self.cache_page]
+        self.acc = self.cache[(self.cache_page << 8) + self.acc]
 
     def _is_12(self, rom_cache_bus, data):
         # CCP
@@ -144,6 +137,16 @@ class Emulator:
     def _is_13(self, rom_cache_bus, data):
         # CRP
         self.rom_page = rom_cache_bus
+
+    def _is_14(self, rom_cache_bus, data):
+        # PUSH
+        self.acc_stack[self.acc_stack_pointer] = self.acc
+        self.acc_stack_pointer = (self.acc_stack_pointer + 1) & 255
+
+    def _is_15(self, rom_cache_bus, data):
+        # POP
+        self.acc_stack_pointer = (self.acc_stack_pointer - 1) & 255
+        self.acc = self.acc_stack[self.acc_stack_pointer]
 
     def _is_16(self, rom_cache_bus, data):
         # AND
@@ -163,14 +166,14 @@ class Emulator:
 
     def _is_20(self, rom_cache_bus, data):
         # LSC
-        self.acc = self.acc << rom_cache_bus
+        self.acc = (self.acc << rom_cache_bus) + self.carry_flag
         self._check_carry()
 
     def _is_21(self, rom_cache_bus, data):
         # RSC
         if ((self.acc >> rom_cache_bus) << rom_cache_bus) != self.acc:
             self.carry_flag = True
-        self.acc = self.acc >> rom_cache_bus
+        self.acc = (self.acc >> rom_cache_bus) + (self.carry_flag << 8)
 
     def _is_22(self, rom_cache_bus, data):
         # CMP
@@ -295,18 +298,39 @@ class Emulator:
 
     def _is_126(self, rom_cache_bus, data):
         # INT
-        self._set_interrupt_register(interrupt=True)
-        self.program_counter += 1
-        raise StopIteration
+        self._process_interrupt()
 
     def _is_127(self, rom_cache_bus, data):
         # HALT
-        self._set_interrupt_register(is_halted=True)
+        self.interrupt_register.is_halted = True
         raise StopIteration
 
     def _is__(self, rom_cache_bus, data):
-        self._set_interrupt_register(wrong=True)
         raise StopIteration
+
+    def _process_interrupt(self):
+        """
+        Processes the interrupt
+        """
+
+        # FileManager - 0
+        if self.allow_files and self.ports[0] == 0:
+            FileManager.process(
+                self,                           # emulator
+                self.ports[1],                  # operation (0 - read, 1 - write)
+                self.ports[2], self.ports[3],   # filepath pointer (16 bits)
+                self.ports[4], self.ports[5]    # size (16 bits)
+            )
+
+        # Sockets - 1
+        elif self.allow_sockets and self.ports[0] == 1:
+            pass
+
+        # nothing allowed
+        else:
+            # enable interrupt and die
+            self.interrupt_register.interrupt = True
+            raise StopIteration
 
     def execute_step(self):
         """
@@ -327,7 +351,7 @@ class Emulator:
 
         # if the memory flag is on, then the value is taken from cache
         if memory_flag and opcode != 2:
-            rom_cache_bus = self.cache[data]
+            rom_cache_bus = self.cache[(self.cache_page << 8) + data]
         else:
             rom_cache_bus = data
 
