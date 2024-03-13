@@ -12,7 +12,8 @@ class Emulator:
         # registers
         self.acc: int = 0                                                   # accumulator
         self.program_counter: int = 0                                       # program counter
-        self.stack_pointer: int = 0                                         # stack pointer
+        self.acc_stack_pointer: int = 0                                     # acc stack pointer
+        self.adr_stack_pointer: int = 0                                     # stack pointer
         self.carry_flag: bool = False                                       # carry flag
         self.interrupt_register: InterruptRegister = InterruptRegister()    # interrupt register
 
@@ -23,7 +24,8 @@ class Emulator:
         # memory
         self.rom: bytearray = bytearray([0 for _ in range(2**16 * 2)])
         self.cache: bytearray = bytearray([0 for _ in range(2**16)])
-        self.stack: bytearray = bytearray([0 for _ in range(256)])
+        self.acc_stack: bytearray = bytearray([0 for _ in range(256)])
+        self.adr_stack: bytearray = bytearray([0 for _ in range(256)])
         self.ports: bytearray = bytearray([0 for _ in range(256)])
 
         # interrupt extensions
@@ -87,14 +89,14 @@ class Emulator:
 
     def _is_3(self, rom_cache_bus, data):
         # CALL
-        self.stack[self.stack_pointer] = self.program_counter
-        self.stack_pointer = (self.stack_pointer + 1) & 255
+        self.adr_stack[self.adr_stack_pointer] = self.program_counter
+        self.adr_stack_pointer = (self.adr_stack_pointer + 1) & 255
         self.program_counter = rom_cache_bus - 1
 
     def _is_4(self, rom_cache_bus, data):
         # RET
-        self.stack_pointer = (self.stack_pointer - 1) & 255
-        self.program_counter = self.stack[self.stack_pointer] - 1
+        self.adr_stack_pointer = (self.adr_stack_pointer - 1) & 255
+        self.program_counter = self.adr_stack[self.adr_stack_pointer] - 1
 
     def _is_5(self, rom_cache_bus, data):
         # JMP
@@ -135,6 +137,16 @@ class Emulator:
     def _is_13(self, rom_cache_bus, data):
         # CRP
         self.rom_page = rom_cache_bus
+
+    def _is_14(self, rom_cache_bus, data):
+        # PUSH
+        self.acc_stack[self.acc_stack_pointer] = self.acc
+        self.acc_stack_pointer = (self.acc_stack_pointer + 1) & 255
+
+    def _is_15(self, rom_cache_bus, data):
+        # POP
+        self.acc_stack_pointer = (self.acc_stack_pointer - 1) & 255
+        self.acc = self.acc_stack[self.acc_stack_pointer]
 
     def _is_16(self, rom_cache_bus, data):
         # AND
