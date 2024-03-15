@@ -1,5 +1,6 @@
 import math
 from ._emu_types import *
+from ._mqis import *
 
 
 class Emulator:
@@ -29,6 +30,10 @@ class Emulator:
 
         # interrupt extensions
         self._includes: list = []
+
+        # instruction counting
+        self.instruction_counter = 0
+        self.tick_counter = 0
 
         # instruction switch case
         self._instruction_set: list = [None for _ in range(128)]
@@ -341,6 +346,12 @@ class Emulator:
         # execute instruction
         self._instruction_set[opcode](rom_cache_bus)
 
+        # add to time
+        if memory_flag:
+            self.tick_counter += InstructionSet.instruction_set[opcode]["cache"]
+        else:
+            self.tick_counter += InstructionSet.instruction_set[opcode]["ROM"]
+
         # increment the program counter
         self._program_counter += 1
 
@@ -350,11 +361,12 @@ class Emulator:
         :return:
         """
 
-        count = 0
         while True:
             try:
                 self.execute_step()
             except StopIteration:
                 break
-            count += 1
-        print(f"\n\n{'='*120}\nFinished after: {count} instructions")
+            self.instruction_counter += 1
+        print(f"\n\n{'='*120}\nFinished after: {self.instruction_counter} instructions;")
+        print(f"Time in ticks: {self.tick_counter} ticks;")
+        print(f"Time in seconds: {self.tick_counter * 0.025:.4f} sec.")
