@@ -317,8 +317,14 @@ class Emulator:
         Processes the interrupt
         """
 
-        self.interrupt_register.interrupt = True
-        raise StopIteration
+        # if there are no includes, then just die
+        if len(self._includes) == 0:
+            self.interrupt_register.interrupt = True
+            raise StopIteration
+
+        # process all the included libs
+        for include in self._includes:
+            include.process(self)
 
     def execute_step(self):
         """
