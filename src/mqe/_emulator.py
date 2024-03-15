@@ -59,7 +59,7 @@ class Emulator:
             opcode = value & 0b111_1111
 
             print("\t", memory_flag, data, opcode)
-        print("Instructions were loaded successfully!", end="\n\n")
+        print("Instructions were loaded successfully!", end=f"\n{'='*120}\n\n")
 
     def _check_carry(self):
         self._carry_flag = self._acc > 255
@@ -357,4 +357,4 @@ class Emulator:
             except StopIteration:
                 break
             count += 1
-        print(f"\n{'='*120}\nFinished after: {count} instructions")
+        print(f"\n\n{'='*120}\nFinished after: {count} instructions")
