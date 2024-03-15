@@ -74,108 +74,108 @@ class Emulator:
     def _is_acc_neg(self):
         return (self.acc & 0b1000_0000) > 0
 
-    def _is_0(self, rom_cache_bus, data):
+    def _is_0(self, rom_cache_bus):
         # NOP
         pass
 
-    def _is_1(self, rom_cache_bus, data):
+    def _is_1(self, rom_cache_bus):
         # LRA
         self.acc = rom_cache_bus
 
-    def _is_2(self, rom_cache_bus, data):
+    def _is_2(self, rom_cache_bus):
         # SRA
-        # address comes only from data (otherwise nothing will work)
-        self.cache[(self.cache_page << 8) + data] = self.acc
+        # rom_cache_bus will equal to DATA from ROM, no cache used
+        self.cache[(self.cache_page << 8) + rom_cache_bus] = self.acc
 
-    def _is_3(self, rom_cache_bus, data):
+    def _is_3(self, rom_cache_bus):
         # CALL
         self.adr_stack[self.adr_stack_pointer] = self.program_counter
         self.adr_stack_pointer = (self.adr_stack_pointer + 1) & 255
-        self.program_counter = rom_cache_bus - 1
+        self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
-    def _is_4(self, rom_cache_bus, data):
+    def _is_4(self, rom_cache_bus):
         # RET
         self.adr_stack_pointer = (self.adr_stack_pointer - 1) & 255
         self.program_counter = self.adr_stack[self.adr_stack_pointer] - 1
 
-    def _is_5(self, rom_cache_bus, data):
+    def _is_5(self, rom_cache_bus):
         # JMP
         self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
-    def _is_6(self, rom_cache_bus, data):
+    def _is_6(self, rom_cache_bus):
         # JMPP
         if self.acc != 0:
             self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
-    def _is_7(self, rom_cache_bus, data):
+    def _is_7(self, rom_cache_bus):
         # JMPZ
         if self.acc == 0:
             self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
-    def _is_8(self, rom_cache_bus, data):
+    def _is_8(self, rom_cache_bus):
         # JMPN
         if (self.acc & 0b1000_0000) > 0:
             self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
-    def _is_9(self, rom_cache_bus, data):
+    def _is_9(self, rom_cache_bus):
         # JMPC
         if self.carry_flag:
             self.program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
 
-    def _is_10(self, rom_cache_bus, data):
+    def _is_10(self, rom_cache_bus):
         # CCF
         self.carry_flag = False
 
-    def _is_11(self, rom_cache_bus, data):
+    def _is_11(self, rom_cache_bus):
         # LRP
         self.acc = self.cache[(self.cache_page << 8) + self.acc]
 
-    def _is_12(self, rom_cache_bus, data):
+    def _is_12(self, rom_cache_bus):
         # CCP
         self.cache_page = rom_cache_bus
 
-    def _is_13(self, rom_cache_bus, data):
+    def _is_13(self, rom_cache_bus):
         # CRP
         self.rom_page = rom_cache_bus
 
-    def _is_14(self, rom_cache_bus, data):
+    def _is_14(self, rom_cache_bus):
         # PUSH
         self.acc_stack[self.acc_stack_pointer] = self.acc
         self.acc_stack_pointer = (self.acc_stack_pointer + 1) & 255
 
-    def _is_15(self, rom_cache_bus, data):
+    def _is_15(self, rom_cache_bus):
         # POP
         self.acc_stack_pointer = (self.acc_stack_pointer - 1) & 255
         self.acc = self.acc_stack[self.acc_stack_pointer]
 
-    def _is_16(self, rom_cache_bus, data):
+    def _is_16(self, rom_cache_bus):
         # AND
         self.acc = self.acc & rom_cache_bus
 
-    def _is_17(self, rom_cache_bus, data):
+    def _is_17(self, rom_cache_bus):
         # OR
         self.acc = self.acc | rom_cache_bus
 
-    def _is_18(self, rom_cache_bus, data):
+    def _is_18(self, rom_cache_bus):
         # XOR
         self.acc = self.acc ^ rom_cache_bus
 
-    def _is_19(self, rom_cache_bus, data):
+    def _is_19(self, rom_cache_bus):
         # NOT
         self.acc = 255 - self.acc
 
-    def _is_20(self, rom_cache_bus, data):
+    def _is_20(self, rom_cache_bus):
         # LSC
         self.acc = (self.acc << rom_cache_bus) + self.carry_flag
         self._check_carry()
 
-    def _is_21(self, rom_cache_bus, data):
+    def _is_21(self, rom_cache_bus):
         # RSC
         if ((self.acc >> rom_cache_bus) << rom_cache_bus) != self.acc:
             self.carry_flag = True
         self.acc = (self.acc >> rom_cache_bus) + (self.carry_flag << 8)
 
-    def _is_22(self, rom_cache_bus, data):
+    def _is_22(self, rom_cache_bus):
         # CMP
         negative = (self.acc & 0b1000_0000) ^ (rom_cache_bus & 0b1000_0000)
         if self.acc > rom_cache_bus:
@@ -187,7 +187,7 @@ class Emulator:
         if negative:
             self.acc = 255 - self.acc
 
-    def _is_23(self, rom_cache_bus, data):
+    def _is_23(self, rom_cache_bus):
         # CMPU
         if self.acc > rom_cache_bus:
             self.acc = 1
@@ -196,77 +196,77 @@ class Emulator:
         else:
             self.acc = 255
 
-    def _is_32(self, rom_cache_bus, data):
+    def _is_32(self, rom_cache_bus):
         # ADC
         self.acc = self.acc + rom_cache_bus + self.carry_flag
         self._check_carry()
 
-    def _is_33(self, rom_cache_bus, data):
+    def _is_33(self, rom_cache_bus):
         # SBC
         self.acc = self.acc - rom_cache_bus - self.carry_flag
         self._check_neg_carry()
 
-    def _is_34(self, rom_cache_bus, data):
+    def _is_34(self, rom_cache_bus):
         # INC
         self.acc += 1
         self._check_carry()
 
-    def _is_35(self, rom_cache_bus, data):
+    def _is_35(self, rom_cache_bus):
         # DEC
         self.acc -= 1
         self._check_neg_carry()
 
-    def _is_36(self, rom_cache_bus, data):
+    def _is_36(self, rom_cache_bus):
         # ABS
         if self._is_acc_neg():
             self.acc = ((255 - self.acc) + 1) & 255
 
-    def _is_37(self, rom_cache_bus, data):
+    def _is_37(self, rom_cache_bus):
         # MUL
         self.acc = (self.acc * rom_cache_bus) & 255
 
-    def _is_38(self, rom_cache_bus, data):
+    def _is_38(self, rom_cache_bus):
         # DIV
         self.acc = self.acc // rom_cache_bus
 
-    def _is_39(self, rom_cache_bus, data):
+    def _is_39(self, rom_cache_bus):
         # MOD
         self.acc = self.acc % rom_cache_bus
 
-    def _is_40(self, rom_cache_bus, data):
+    def _is_40(self, rom_cache_bus):
         # TSE
         sin = (math.sin(self.acc / 32) + 1) / 2
         sin = int(sin * 255)
         self.acc = sin
 
-    def _is_41(self, rom_cache_bus, data):
+    def _is_41(self, rom_cache_bus):
         # TCE
         cos = (math.cos(self.acc / 32) + 1) / 2
         cos = int(cos * 255)
         self.acc = cos
 
-    def _is_42(self, rom_cache_bus, data):
+    def _is_42(self, rom_cache_bus):
         # ADD
         self.acc = self.acc + rom_cache_bus
         self._check_carry()
 
-    def _is_43(self, rom_cache_bus, data):
+    def _is_43(self, rom_cache_bus):
         # SUB
         self.acc = self.acc - rom_cache_bus
         self._check_neg_carry()
 
-    def _is_44(self, rom_cache_bus, data):
+    def _is_44(self, rom_cache_bus):
         # RPL
         if rom_cache_bus == 0:
             self.acc = 255
         else:
             self.acc = int(255 / rom_cache_bus)
 
-    def _is_45(self, rom_cache_bus, data):
+    def _is_45(self, rom_cache_bus):
         # MULH
         self.acc = ((self.acc * rom_cache_bus) & 0b1111_1111_0000_0000) >> 8
 
-    def _is_48(self, rom_cache_bus, data):
+    def _is_48(self, rom_cache_bus):
         # UI
         user = input("> ")
         try:
@@ -276,36 +276,36 @@ class Emulator:
         except IndexError:
             self.acc = 0
 
-    def _is_49(self, rom_cache_bus, data):
+    def _is_49(self, rom_cache_bus):
         # UO
         print(self.acc)
 
-    def _is_50(self, rom_cache_bus, data):
+    def _is_50(self, rom_cache_bus):
         # UOC
         print(chr(self.acc), end="")
 
-    def _is_51(self, rom_cache_bus, data):
+    def _is_51(self, rom_cache_bus):
         # UOCR
         print(chr(self.acc))
 
-    def _is_112(self, rom_cache_bus, data):
+    def _is_112(self, rom_cache_bus):
         # PRW
-        self.ports[data] = self.acc
+        self.ports[rom_cache_bus] = self.acc
 
-    def _is_113(self, rom_cache_bus, data):
+    def _is_113(self, rom_cache_bus):
         # PRR
-        self.acc = self.ports[data]
+        self.acc = self.ports[rom_cache_bus]
 
-    def _is_126(self, rom_cache_bus, data):
+    def _is_126(self, rom_cache_bus):
         # INT
         self._process_interrupt()
 
-    def _is_127(self, rom_cache_bus, data):
+    def _is_127(self, rom_cache_bus):
         # HALT
         self.interrupt_register.is_halted = True
         raise StopIteration
 
-    def _is__(self, rom_cache_bus, data):
+    def _is__(self, rom_cache_bus):
         raise StopIteration
 
     def _process_interrupt(self):
@@ -356,7 +356,7 @@ class Emulator:
             rom_cache_bus = data
 
         # execute instruction
-        self.instruction_set[opcode](rom_cache_bus, data)
+        self.instruction_set[opcode](rom_cache_bus)
 
         # increment the program counter
         self.program_counter += 1
