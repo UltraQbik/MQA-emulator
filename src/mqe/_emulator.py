@@ -169,9 +169,10 @@ class Emulator:
 
     def _is_21(self, rom_cache_bus):
         # RSC
-        if ((self._acc >> rom_cache_bus) << rom_cache_bus) != self._acc:
+        temp_acc = self._acc
+        self._acc = (self._acc >> rom_cache_bus) + (self._carry_flag << 7)
+        if ((temp_acc >> rom_cache_bus) << rom_cache_bus) != temp_acc:
             self._carry_flag = True
-        self._acc = (self._acc >> rom_cache_bus) + (self._carry_flag << 8)
 
     def _is_22(self, rom_cache_bus):
         # CMP
