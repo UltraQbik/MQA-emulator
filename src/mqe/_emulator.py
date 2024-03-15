@@ -89,7 +89,7 @@ class Emulator:
         # CALL
         self._adr_stack[self._adr_stack_pointer] = self._program_counter
         self._adr_stack_pointer = (self._adr_stack_pointer + 1) & 255
-        self._program_counter = (self.rom_page << 8) + (rom_cache_bus - 1)
+        self._program_counter = (self._rom_page << 8) + (rom_cache_bus - 1)
 
     def _is_4(self, rom_cache_bus):
         # RET
