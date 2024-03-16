@@ -7,21 +7,23 @@ If you will accidentally rewrite and mess up you system files or drivers, it is 
 """
 
 
+class EmulatorStub:
+    interrupt_register = None
+    cache: bytearray
+    ports: bytearray
+
+
 class FileManager:
     @classmethod
-    def process(cls, emu, operation: int, ptr_low: int, ptr_high: int, size_low: int, size_high: int):
+    def process(cls, emu: EmulatorStub):
         """
         Processes all file related interrupt calls
         :param emu: emulator
-        :param operation: operation (0 - read, 1 - write)
-        :param ptr_low: lower part of the 16 bit pointer
-        :param ptr_high: higher part of the 16 bit pointer
-        :param size_low: lower part of the 16 bit length of the file (in bytes)
-        :param size_high: higher part of the 16 bit length of the file (in bytes)
         """
 
-        ptr = (ptr_high << 8) + ptr_low
-        size = (size_high << 8) + size_low
+        operation = emu.ports[0]
+        ptr = int.from_bytes(emu.ports[1:3], 'little')
+        size = int.from_bytes(emu.ports[3:5], 'little')
 
         if operation == 0:
             cls.read_file(emu, ptr, size)
