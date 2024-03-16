@@ -78,38 +78,40 @@ class Emulator:
         self.print(f"\tassemblySectionSize: {assembly_section_size}")
         self.print("Header end.")
 
-        self.print("Include section start:")
-        include_section_data = bytearray()
-        for _ in range(include_section_size):
-            # fetch character
-            char = file.read(1)
+        if include_section_size > 0:
+            self.print("Include section start:")
+            include_section_data = bytearray()
+            for _ in range(include_section_size):
+                # fetch character
+                char = file.read(1)
 
-            # check EOF
-            if not char:
-                print("\nERROR: file ended before the include section could be read fully")
-                exit(1)
-
-            # if character is a newline, then it's a new include
-            if char == b'\n':
-                try:
-                    decoded_include = include_section_data.decode('ASCII')
-                except UnicodeDecodeError:
-                    print("\nERROR: unable to decode include name")
+                # check EOF
+                if not char:
+                    print("\nERROR: file ended before the include section could be read fully")
                     exit(1)
 
-                self._includes.append(decoded_include)
-                self.print(f"\t> {decoded_include}")
-                include_section_data.clear()
+                # if character is a newline, then it's a new include
+                if char == b'\n':
+                    try:
+                        decoded_include = include_section_data.decode('ASCII')
+                    except UnicodeDecodeError:
+                        print("\nERROR: unable to decode include name")
+                        exit(1)
 
-            # otherwise append a character to the include section
-            else:
-                include_section_data += char
-        self.print("Include section end.")
+                    self._includes.append(decoded_include)
+                    self.print(f"\t> {decoded_include}")
+                    include_section_data.clear()
+
+                # otherwise append a character to the include section
+                else:
+                    include_section_data += char
+            self.print("Include section end.")
 
         self.print("Assembly section start:")
         for idx in range(0, assembly_section_size & 0b1_1111_1111_1111_1111, 2):
             # fetch bytes
-            val_low, val_high = file.read(2)
+            val_low = file.read(1)
+            val_high = file.read(1)
 
             # check EOF
             if not val_low or not val_high:
@@ -118,21 +120,21 @@ class Emulator:
 
             # verbose print
             if self._verbose:
-                value = (val_high << 8) + val_low
+                value = (int.from_bytes(val_high) << 8) + int.from_bytes(val_low)
 
                 # instruction mnemonic
                 mnemonic = InstructionSet.instruction_set.get(value & 127)["name"]
 
                 # if memory flag is on
                 if value >> 15:
-                    print(f"> {mnemonic: <4} ${(value >> 7) & 255}")
+                    print(f"\t{mnemonic: <4} ${(value >> 7) & 255}")
                 else:
-                    print(f"> {mnemonic: <4} {(value >> 7) & 255}")
+                    print(f"\t{mnemonic: <4} {(value >> 7) & 255}")
 
             # write to rom
             self._rom += val_low
             self._rom += val_high
-        self.print("Assembly section end.")
+        self.print(f"Assembly section end.")
 
         # check versions
         if float(self._cpu_version) < float(cpu_version.strip()):
@@ -396,7 +398,10 @@ class Emulator:
 
         # process all the included libs
         for include in self._includes:
-            include.process(self)
+            if include not in self.INCLUDED_LIBS:
+                self.print(f"WARN: incorrect include '{include}'")
+
+            self.INCLUDED_LIBS[include].process(self)
 
     def execute_step(self):
         """
@@ -440,11 +445,13 @@ class Emulator:
         :return:
         """
 
+        print(f"\n{'='*120}\n")
         while True:
             try:
                 self.execute_step()
             except StopIteration:
                 break
-        print(f"\n\n{'='*120}\nFinished after: {self.instruction_counter} instructions;")
-        print(f"Time in ticks: {self.tick_counter} ticks;")
-        print(f"Time in seconds: {self.tick_counter * 0.025:.4f} sec.")
+        print(f"\n\n{'='*120}\n")
+        print(f"Finished after : {self.instruction_counter} instructions")
+        print(f"Time in ticks  : {self.tick_counter} ticks")
+        print(f"Time in seconds: {self.tick_counter * 0.025:.4f} sec")
