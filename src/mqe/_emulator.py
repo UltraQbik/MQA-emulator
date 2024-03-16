@@ -1,10 +1,17 @@
 import math
+from types import ModuleType
+from typing import BinaryIO
 from ._emu_types import *
 from ._mqis import *
+from .ext import *
 
 
 class Emulator:
-    def __init__(self):
+    INCLUDED_LIBS: dict[str, ModuleType] = {
+        "FileManager": FileManager,
+    }
+
+    def __init__(self, **kwargs):
         """
         Emulator class, which does do the emulation thing.
         """
@@ -22,14 +29,16 @@ class Emulator:
         self._rom_page: int = 0                                             # ROM page
 
         # memory
-        self._rom: bytearray = bytearray([0 for _ in range(2 ** 16 * 2)])
+        self._rom: bytearray = bytearray()
         self.cache: bytearray = bytearray([0 for _ in range(2**16)])
         self._acc_stack: bytearray = bytearray([0 for _ in range(256)])
         self._adr_stack: bytearray = bytearray([0 for _ in range(256)])
         self.ports: bytearray = bytearray([0 for _ in range(256)])
 
-        # interrupt extensions
-        self._includes: list = []
+        # emulator specific
+        self._verbose: bool = kwargs.get("verbose", False)
+        self._cpu_version: str = "1.1"
+        self._includes: list[str] = []
 
         # instruction counting
         self.instruction_counter = 0
@@ -43,28 +52,91 @@ class Emulator:
             else:
                 self._instruction_set[i] = self._is__
 
-    def load_instructions(self, instructions: bytes):
+    def print(self, *values, sep: str | None = " ", end: str | None = "\n", flush: bool = False):
+        if self._verbose:
+            print(*values, sep=sep, end=end, flush=flush)
+
+    def load_binary_file(self, file: BinaryIO):
         """
-        Loads the instructions into the ROM (Read-Only Memory)
-        :param instructions: instructions
+        Loads the binary executable into the ROM (Read-Only Memory)
+        :param file: binary file
         """
 
-        print("Loading the instructions...")
-        for idx in range(0, len(instructions), 2):
-            value_high = instructions[idx]
-            value_low = instructions[idx + 1]
+        #               |                    : 10 bytes total
+        #               | cpuVersion         : 4  bytes - "1.1 "
+        # little_endian | includeSectionSize : 2  bytes - amount of bytes in include section
+        # little_endian | assemblySectionSize: 4  bytes - amount of bytes in code
+        # little_endian | includeSectionData : N  bytes - the include data
+        # little_endian | assemblySectionData: N  bytes - the code data
 
-            self._rom[idx] = value_high
-            self._rom[idx + 1] = value_low
+        cpu_version = file.read(4).decode('ASCII', 'replace')
+        include_section_size = int.from_bytes(file.read(2), 'little')
+        assembly_section_size = int.from_bytes(file.read(4), 'little')
+        self.print("Header data:")
+        self.print(f"\tcpuVersion:          {cpu_version}")
+        self.print(f"\tincludeSectionSize:  {include_section_size}")
+        self.print(f"\tassemblySectionSize: {assembly_section_size}")
+        self.print("Header end.")
 
-            value = (value_high << 8) + value_low
+        self.print("Include section start:")
+        include_section_data = bytearray()
+        for _ in range(include_section_size):
+            # fetch character
+            char = file.read(1)
 
-            memory_flag = value >> 15
-            data = (value >> 7) & 0b1111_1111
-            opcode = value & 0b111_1111
+            # check EOF
+            if not char:
+                print("\nERROR: file ended before the include section could be read fully")
+                exit(1)
 
-            print("\t", memory_flag, data, opcode)
-        print("Instructions were loaded successfully!", end=f"\n{'='*120}\n\n")
+            # if character is a newline, then it's a new include
+            if char == b'\n':
+                try:
+                    decoded_include = include_section_data.decode('ASCII')
+                except UnicodeDecodeError:
+                    print("\nERROR: unable to decode include name")
+                    exit(1)
+
+                self._includes.append(decoded_include)
+                self.print(f"\t> {decoded_include}")
+                include_section_data.clear()
+
+            # otherwise append a character to the include section
+            else:
+                include_section_data += char
+        self.print("Include section end.")
+
+        self.print("Assembly section start:")
+        for idx in range(0, assembly_section_size & 0b1_1111_1111_1111_1111, 2):
+            # fetch bytes
+            val_low, val_high = file.read(2)
+
+            # check EOF
+            if not val_low or not val_high:
+                print("ERROR: file ended before the assembly section could be read fully")
+                exit(1)
+
+            # verbose print
+            if self._verbose:
+                value = (val_high << 8) + val_low
+
+                # instruction mnemonic
+                mnemonic = InstructionSet.instruction_set.get(value & 127)["name"]
+
+                # if memory flag is on
+                if value >> 15:
+                    print(f"> {mnemonic: <4} ${(value >> 7) & 255}")
+                else:
+                    print(f"> {mnemonic: <4} {(value >> 7) & 255}")
+
+            # write to rom
+            self._rom += val_low
+            self._rom += val_high
+        self.print("Assembly section end.")
+
+        # check versions
+        if float(self._cpu_version) < float(cpu_version.strip()):
+            print("WARN: the executable file is for newer MQ version; some things may not work")
 
     def _check_carry(self):
         self._carry_flag = self._acc > 255
@@ -332,8 +404,8 @@ class Emulator:
         """
 
         # fetch the instruction bytes
-        value_high = self._rom[self._program_counter * 2]
-        value_low = self._rom[self._program_counter * 2 + 1]
+        value_low = self._rom[self._program_counter * 2]
+        value_high = self._rom[self._program_counter * 2 + 1]
 
         # combine the instruction
         value = (value_high << 8) + value_low
@@ -353,6 +425,7 @@ class Emulator:
         self._instruction_set[opcode](rom_cache_bus)
 
         # add to time
+        self.instruction_counter += 1
         if memory_flag:
             self.tick_counter += InstructionSet.instruction_set[opcode]["cache"]
         else:
@@ -372,7 +445,6 @@ class Emulator:
                 self.execute_step()
             except StopIteration:
                 break
-            self.instruction_counter += 1
         print(f"\n\n{'='*120}\nFinished after: {self.instruction_counter} instructions;")
         print(f"Time in ticks: {self.tick_counter} ticks;")
         print(f"Time in seconds: {self.tick_counter * 0.025:.4f} sec.")
