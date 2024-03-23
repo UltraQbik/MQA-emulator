@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "mqe"
 description = "MQ emulator"
 readme = "README.md"
-version = "v1.2.0"
+version = "v1.2.1"
 authors = [{name = "Qubane"}]
 classifiers = [
     "License :: OSI Approved :: MIT License",
