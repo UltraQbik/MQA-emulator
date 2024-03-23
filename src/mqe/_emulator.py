@@ -1,8 +1,9 @@
 import math
+from types import ModuleType
 from typing import BinaryIO
-from ._extensions import Extensions
 from ._emu_types import *
 from ._mqis import *
+from .ext import *
 
 
 def pretty_time(time: int | float) -> str:
@@ -52,6 +53,10 @@ def pretty_time(time: int | float) -> str:
 
 
 class Emulator:
+    INCLUDED_LIBS: dict[str, ModuleType] = {
+        "FileManager": FileManager,
+    }
+
     def __init__(self, **kwargs):
         """
         Emulator class, which does do the emulation thing.
@@ -77,7 +82,7 @@ class Emulator:
         self.ports: bytearray = bytearray([0 for _ in range(256)])
 
         # emulator specific
-        self.verbose: bool = kwargs.get("verbose", False)
+        self._verbose: bool = kwargs.get("verbose", False)
         self._cpu_version: str = "1.1"
         self._includes: list[str] = []
 
@@ -94,7 +99,7 @@ class Emulator:
                 self._instruction_set[i] = self._is__
 
     def print(self, *values, sep: str | None = " ", end: str | None = "\n", flush: bool = False):
-        if self.verbose:
+        if self._verbose:
             print(*values, sep=sep, end=end, flush=flush)
 
     def load_binary_file(self, file: BinaryIO):
@@ -160,7 +165,7 @@ class Emulator:
                 exit(1)
 
             # verbose print
-            if self.verbose:
+            if self._verbose:
                 value = (int.from_bytes(val_high) << 8) + int.from_bytes(val_low)
 
                 # instruction mnemonic
@@ -439,10 +444,10 @@ class Emulator:
 
         # process all the included libs
         for include in self._includes:
-            if include not in Extensions.LIST:
+            if include not in self.INCLUDED_LIBS:
                 self.print(f"WARN: incorrect include '{include}'")
 
-            Extensions.LIST[include].process(self)
+            self.INCLUDED_LIBS[include].process(self)
 
     def execute_step(self):
         """
