@@ -1,1 +1,1 @@
-from ._file_system import FileManager
+from .._extensions import load_extension

@@ -1,4 +1,5 @@
 import os
+from . import load_extension
 
 
 """
@@ -7,23 +8,21 @@ If you will accidentally rewrite and mess up you system files or drivers, it is 
 """
 
 
-class EmulatorStub:
-    interrupt_register = None
-    cache: bytearray
-    ports: bytearray
-
-
 class FileManager:
     @classmethod
-    def process(cls, emu: EmulatorStub):
+    def process(cls, emu):
         """
-        Processes all file related interrupt calls
+        Processes all file related interrupt calls.
         :param emu: emulator
         """
 
-        operation = emu.ports[0]
-        ptr = int.from_bytes(emu.ports[1:3], 'little')
-        size = int.from_bytes(emu.ports[3:5], 'little')
+        # check interrupt operation
+        if emu.ports[0] != 0:
+            return
+
+        operation = emu.ports[1]
+        ptr = int.from_bytes(emu.ports[2:4], 'little')
+        size = int.from_bytes(emu.ports[5:6], 'little')
 
         if operation == 0:
             cls.read_file(emu, ptr, size)
@@ -48,6 +47,8 @@ class FileManager:
 
         # check if the filepath is valid
         if not os.path.isfile(path):
+            if emu.verbose:
+                print("MODULE ERROR: file not found")
             return
 
         # if no size is given, just assume it's all of it
@@ -60,6 +61,8 @@ class FileManager:
             while offset != size:
                 # check if the pointer exceeds cache
                 if ptr + offset > 65535:
+                    if emu.verbose:
+                        print("MODULE WARN: cache overrun")
                     return
 
                 # fetch a character
@@ -93,7 +96,12 @@ class FileManager:
             for i in range(size):
                 # check if the pointer exceeds cache
                 if ptr + i > 65535:
+                    if emu.verbose:
+                        print("MODULE WARN: cache overrun")
                     return
 
                 # write into file
                 file.write(bytes([emu.cache[ptr + i]]))
+
+
+load_extension(FileManager)
