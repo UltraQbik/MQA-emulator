@@ -28,6 +28,7 @@ class DisplayManager:
             return
 
         if not cls.INITIATED:
+            os.system("")
             print("\n".join([' ' * 120 for _ in range(30)]))
             cls.INITIATED = True
 
@@ -44,9 +45,9 @@ class DisplayManager:
             cls.plot(x, y, val)
 
         # page mode
-        if emu.ports[0] == 2:
+        elif emu.ports[0] == 2:
             pass
 
     @staticmethod
     def plot(x, y, val):
-        print(f"\033[{y};{x}H", end=chr(val))
+        print(f"\033[{y};{x}H", end=chr(val), flush=True)

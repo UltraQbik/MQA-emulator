@@ -88,7 +88,7 @@ class Emulator:
         self._includes: list[str] = []
 
         # instruction counting
-        self.instruction_counter = 0
+        self.instruction_counter = 1
         self.tick_counter = 0
 
         # instruction switch case
@@ -220,7 +220,8 @@ class Emulator:
     def _is_4(self, rom_cache_bus):
         # RET
         self._adr_stack_pointer = (self._adr_stack_pointer - 1) & 255
-        self._program_counter = self._adr_stack[self._adr_stack_pointer] - 1
+        self._program_counter = self._adr_stack[self._adr_stack_pointer]
+        self._acc = rom_cache_bus
 
     def _is_5(self, rom_cache_bus):
         # JMP
