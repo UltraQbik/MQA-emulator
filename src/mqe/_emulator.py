@@ -55,6 +55,7 @@ def pretty_time(time: int | float) -> str:
 class Emulator:
     INCLUDED_LIBS: dict[str, ModuleType] = {
         "FileManager": FileManager,
+        "DisplayManager": DisplayManager,
     }
 
     def __init__(self, **kwargs):
