@@ -14,6 +14,10 @@ class EmulatorStub:
 
 
 class FileManager:
+    """
+    The file manager class, uses interrupt operation 0.
+    """
+
     @classmethod
     def process(cls, emu: EmulatorStub):
         """
@@ -21,9 +25,17 @@ class FileManager:
         :param emu: emulator
         """
 
-        operation = emu.ports[0]
-        ptr = int.from_bytes(emu.ports[1:3], 'little')
-        size = int.from_bytes(emu.ports[3:5], 'little')
+        # check interrupt operations
+        if emu.ports[0] != 0:
+            return
+
+        # operation - port 1
+        # ptr_low, ptr_high - 2, 3
+        # size_low, size_high - 4, 5
+
+        operation = emu.ports[1]
+        ptr = int.from_bytes(emu.ports[2:4], 'little')
+        size = int.from_bytes(emu.ports[4:6], 'little')
 
         if operation == 0:
             cls.read_file(emu, ptr, size)

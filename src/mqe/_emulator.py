@@ -16,7 +16,7 @@ def pretty_time(time: int | float) -> str:
     # seconds to minutes
     new_time = time / 60
     if new_time < 1:
-        return f"{time} seconds"
+        return f"{time:.4f} seconds"
     time = new_time
 
     # minutes to hours
