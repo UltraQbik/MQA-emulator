@@ -14,7 +14,43 @@ class DisplayManager:
     2 for page mode
     """
 
-    INITIATED: bool = False
+    # display manager parameters
+    INITIALIZED: bool = False
+
+    # window variables
+    ROOT = None
+    IMAGE_BUFFER = None
+
+    # window width and height
+    WINDOW_WIDTH = 128
+    WINDOW_HEIGHT = 128
+
+    @classmethod
+    def initialize(cls, mode: int):
+        """
+        Initializes the display
+        """
+
+        # initialize Tk
+        from tkinter import Tk, Canvas, PhotoImage, mainloop
+
+        # create a window
+        cls.ROOT = Tk()
+        if mode == 1:
+            cls.ROOT.title("DisplayManager (XY mode)")
+        else:
+            cls.ROOT.title("DisplayManager (page mode)")
+
+        # make canvas
+        canvas = Canvas(cls.ROOT, width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT, bg="#000000")
+        canvas.pack()
+
+        # create window image buffer and put it on canvas
+        cls.IMAGE_BUFFER = PhotoImage(width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT)
+        canvas.create_image((cls.WINDOW_WIDTH//2, cls.WINDOW_HEIGHT//2), image=cls.IMAGE_BUFFER, state="normal")
+
+        # start the window
+        mainloop()
 
     @classmethod
     def process(cls, emu):
@@ -27,10 +63,12 @@ class DisplayManager:
         if emu.ports[0] != 1 and emu.ports[0] != 2:
             return
 
-        if not cls.INITIATED:
-            os.system("")
-            print("\n".join([' ' * 120 for _ in range(30)]))
-            cls.INITIATED = True
+        # check initialization
+        if not cls.INITIALIZED:
+            cls.initialize(emu.ports[0])
+
+            # set INITIALIZED to True
+            cls.INITIALIZED = True
 
         # XY mode
         if emu.ports[0] == 1:
