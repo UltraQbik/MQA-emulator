@@ -1,6 +1,7 @@
 import os
 import argparse
 from . import Emulator
+from threading import Thread
 
 
 parser = argparse.ArgumentParser(prog="mqe", description="Emulates .mqa execution files for Mini Quantum CPU")
@@ -25,9 +26,12 @@ def main():
     if not os.path.isfile(args.input):
         die(f"file '{args.input}' not found")
 
+    # initialize the emulator
     emulator = Emulator(verbose=args.verbose)
     with open(args.input, "rb") as file:
         emulator.load_binary_file(file)
+
+    # run emulation
     emulator.execute_whole()
 
 
