@@ -1,6 +1,4 @@
-from time import sleep
 from tkinter import Tk, Canvas, PhotoImage
-from threading import Thread
 
 
 """
