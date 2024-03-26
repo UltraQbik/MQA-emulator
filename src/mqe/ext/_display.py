@@ -1,4 +1,6 @@
-import os
+from time import sleep
+from tkinter import Tk, Canvas, PhotoImage
+from threading import Thread
 
 
 """
@@ -18,21 +20,18 @@ class DisplayManager:
     INITIALIZED: bool = False
 
     # window variables
-    ROOT = None
-    IMAGE_BUFFER = None
+    ROOT: None | Tk = None
+    IMAGE_BUFFER: None | PhotoImage = None
 
     # window width and height
-    WINDOW_WIDTH = 128
-    WINDOW_HEIGHT = 128
+    WINDOW_WIDTH: int = 128
+    WINDOW_HEIGHT: int = 128
 
     @classmethod
     def initialize(cls, mode: int):
         """
         Initializes the display
         """
-
-        # initialize Tk
-        from tkinter import Tk, Canvas, PhotoImage, mainloop
 
         # create a window
         cls.ROOT = Tk()
@@ -47,10 +46,8 @@ class DisplayManager:
 
         # create window image buffer and put it on canvas
         cls.IMAGE_BUFFER = PhotoImage(width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT)
-        canvas.create_image((cls.WINDOW_WIDTH//2, cls.WINDOW_HEIGHT//2), image=cls.IMAGE_BUFFER, state="normal")
-
-        # start the window
-        mainloop()
+        canvas.create_image((cls.WINDOW_WIDTH//2, cls.WINDOW_HEIGHT//2),
+                                image=cls.IMAGE_BUFFER, state="normal")
 
     @classmethod
     def process(cls, emu):
@@ -65,10 +62,18 @@ class DisplayManager:
 
         # check initialization
         if not cls.INITIALIZED:
+            # width and height
+            cls.WINDOW_WIDTH = emu.ports[1] & 255
+            cls.WINDOW_HEIGHT = emu.ports[2] & 255
+
+            # initialize window method
             cls.initialize(emu.ports[0])
 
             # set INITIALIZED to True
             cls.INITIALIZED = True
+
+            # return
+            return
 
         # XY mode
         if emu.ports[0] == 1:
@@ -86,6 +91,12 @@ class DisplayManager:
         elif emu.ports[0] == 2:
             pass
 
-    @staticmethod
-    def plot(x, y, val):
-        print(f"\033[{y};{x}H", end=chr(val), flush=True)
+    @classmethod
+    def plot(cls, x, y, val):
+        # get RGB values, and put them in a range 0 - 255
+        r = int((val >> 5) * 36.4285)
+        g = int(((val >> 2) & 0b111) * 36.4285)
+        b = int((val & 0b11) * 85)
+
+        # plot a pixel
+        cls.IMAGE_BUFFER.put(f"#{hex(r)[2:]:0>2}{hex(g)[2:]:0>2}{hex(b)[2:]:0>2}", (x, y))
