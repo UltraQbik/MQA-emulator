@@ -1,4 +1,4 @@
-import os
+from tkinter import Tk, Canvas, PhotoImage
 
 
 """
@@ -14,7 +14,38 @@ class DisplayManager:
     2 for page mode
     """
 
-    INITIATED: bool = False
+    # display manager parameters
+    INITIALIZED: bool = False
+
+    # window variables
+    ROOT: None | Tk = None
+    IMAGE_BUFFER: None | PhotoImage = None
+
+    # window width and height
+    WINDOW_WIDTH: int = 128
+    WINDOW_HEIGHT: int = 128
+
+    @classmethod
+    def initialize(cls, mode: int):
+        """
+        Initializes the display
+        """
+
+        # create a window
+        cls.ROOT = Tk()
+        if mode == 1:
+            cls.ROOT.title("DisplayManager (XY mode)")
+        else:
+            cls.ROOT.title("DisplayManager (page mode)")
+
+        # make canvas
+        canvas = Canvas(cls.ROOT, width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT, bg="#000000")
+        canvas.pack()
+
+        # create window image buffer and put it on canvas
+        cls.IMAGE_BUFFER = PhotoImage(width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT)
+        canvas.create_image((cls.WINDOW_WIDTH//2, cls.WINDOW_HEIGHT//2),
+                                image=cls.IMAGE_BUFFER, state="normal")
 
     @classmethod
     def process(cls, emu):
@@ -27,10 +58,20 @@ class DisplayManager:
         if emu.ports[0] != 1 and emu.ports[0] != 2:
             return
 
-        if not cls.INITIATED:
-            os.system("")
-            print("\n".join([' ' * 120 for _ in range(30)]))
-            cls.INITIATED = True
+        # check initialization
+        if not cls.INITIALIZED:
+            # width and height
+            cls.WINDOW_WIDTH = emu.ports[1] & 255
+            cls.WINDOW_HEIGHT = emu.ports[2] & 255
+
+            # initialize window method
+            cls.initialize(emu.ports[0])
+
+            # set INITIALIZED to True
+            cls.INITIALIZED = True
+
+            # return
+            return
 
         # XY mode
         if emu.ports[0] == 1:
@@ -48,6 +89,12 @@ class DisplayManager:
         elif emu.ports[0] == 2:
             pass
 
-    @staticmethod
-    def plot(x, y, val):
-        print(f"\033[{y};{x}H", end=chr(val), flush=True)
+    @classmethod
+    def plot(cls, x, y, val):
+        # get RGB values, and put them in a range 0 - 255
+        r = int((val >> 5) * 36.4285)
+        g = int(((val >> 2) & 0b111) * 36.4285)
+        b = int((val & 0b11) * 85)
+
+        # plot a pixel
+        cls.IMAGE_BUFFER.put(f"#{hex(r)[2:]:0>2}{hex(g)[2:]:0>2}{hex(b)[2:]:0>2}", (x, y))

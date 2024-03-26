@@ -477,6 +477,10 @@ class Emulator:
         # execute instruction
         self._instruction_set[opcode](rom_cache_bus)
 
+        # display manager
+        if DisplayManager.ROOT is not None:
+            DisplayManager.ROOT.update()
+
         # add to time
         self.instruction_counter += 1
         if memory_flag:
@@ -501,6 +505,8 @@ class Emulator:
                 break
             except IndexError:
                 print("WARN: program counter overflow; halted")
+                break
+            except KeyboardInterrupt:
                 break
         print(f"\n\n{'='*120}\n")
         print(f"Finished after : {self.instruction_counter} instructions")
