@@ -65,6 +65,7 @@ class Emulator:
 
         # registers
         self._acc: int = 0                                                  # accumulator
+        self._bacc: int = 0                                                 # baccumulator
         self._program_counter: int = 0                                      # program counter
         self._acc_stack_pointer: int = 0                                    # _acc stack pointer
         self._adr_stack_pointer: int = 0                                    # stack pointer
@@ -413,6 +414,18 @@ class Emulator:
     def _is_51(self, rom_cache_bus):
         # UOCR
         print(chr(self._acc))
+
+    def _is_52(self, rom_cache_bus):
+        # LRB
+        self._bacc = rom_cache_bus
+
+    def _is_53(self, rom_cache_bus):
+        # SRP
+        self.cache[self._bacc] = self._acc
+
+    def _is_54(self, rom_cache_bus):
+        # TAB
+        self._bacc = self._acc
 
     def _is_112(self, rom_cache_bus):
         # PRW
