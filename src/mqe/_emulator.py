@@ -354,7 +354,10 @@ class Emulator:
 
     def _is_38(self, rom_cache_bus):
         # DIV
-        self._acc = self._acc // rom_cache_bus
+        if rom_cache_bus != 0:
+            self._acc = self._acc // rom_cache_bus
+        else:
+            self._acc = 255
 
     def _is_39(self, rom_cache_bus):
         # MOD
@@ -384,10 +387,10 @@ class Emulator:
 
     def _is_44(self, rom_cache_bus):
         # RPL
-        if rom_cache_bus == 0:
-            self._acc = 255
-        else:
+        if rom_cache_bus != 0:
             self._acc = int(255 / rom_cache_bus)
+        else:
+            self._acc = 255
 
     def _is_45(self, rom_cache_bus):
         # MULH
