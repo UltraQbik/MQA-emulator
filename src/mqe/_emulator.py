@@ -421,7 +421,7 @@ class Emulator:
 
     def _is_53(self, rom_cache_bus):
         # SRP
-        self.cache[self._bacc] = self._acc
+        self.cache[(self._cache_page << 8) + self._bacc] = self._acc
 
     def _is_54(self, rom_cache_bus):
         # TAB
