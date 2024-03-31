@@ -43,7 +43,7 @@ class DisplayManager:
 
         # make canvas
         canvas = Canvas(cls.ROOT, width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT, bg="#000000")
-        canvas.pack()
+        canvas.pack(expand=True)
 
         # create window image buffer and put it on canvas
         cls.IMAGE_BUFFER = PhotoImage(width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT)
@@ -90,7 +90,7 @@ class DisplayManager:
 
         # page mode
         elif emu.ports[0] == 2:
-            pass
+            cls.page_update(emu.cache)
 
     @classmethod
     def plot(cls, x, y, val):
@@ -101,3 +101,11 @@ class DisplayManager:
 
         # plot a pixel
         cls.IMAGE_BUFFER.put(f"#{hex(r)[2:]:0>2}{hex(g)[2:]:0>2}{hex(b)[2:]:0>2}", (x, y))
+
+    @classmethod
+    def page_update(cls, cache):
+        img_ptr = cls.WINDOW_WIDTH * cls.WINDOW_HEIGHT
+
+        cls.IMAGE_BUFFER.configure(
+            data=f'P5 {cls.WINDOW_WIDTH} {cls.WINDOW_HEIGHT} 255 '.encode() + cache[65536-img_ptr:]
+        )
