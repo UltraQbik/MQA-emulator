@@ -25,8 +25,6 @@ class ResizingCanvas(Canvas):
         wscale = float(event.width)/self.width
         hscale = float(event.height)/self.height
 
-        print(event.width, event.height)
-
         self.width = event.width
         self.height = event.height
 
