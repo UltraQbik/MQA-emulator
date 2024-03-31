@@ -1,4 +1,5 @@
 import math
+from time import perf_counter
 from types import ModuleType
 from typing import BinaryIO
 from ._emu_types import *
@@ -448,7 +449,8 @@ class Emulator:
         self._instruction_set[opcode](rom_cache_bus)
 
         # display manager
-        if DisplayManager.ROOT is not None:
+        if DisplayManager.ROOT is not None and perf_counter() - DisplayManager.PREV_VALUE > DisplayManager.UPDATE_RATE:
+            DisplayManager.PREV_VALUE = perf_counter()
             DisplayManager.ROOT.update()
 
         # add to time

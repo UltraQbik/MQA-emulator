@@ -2,8 +2,7 @@ from tkinter import Tk, Canvas, PhotoImage
 
 
 """
-Simplistic terminal only extension for MQE.
-Once included, only image data can be displayed on the terminal.
+Simple display manager, which uses tkinter to function.
 """
 
 
@@ -24,6 +23,10 @@ class DisplayManager:
     # window width and height
     WINDOW_WIDTH: int = 128
     WINDOW_HEIGHT: int = 128
+
+    # window update rate
+    UPDATE_RATE: float = 1 / 30
+    PREV_VALUE: float = 0
 
     @classmethod
     def initialize(cls, mode: int):
