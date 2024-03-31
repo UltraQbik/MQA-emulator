@@ -6,52 +6,6 @@ from ._mqis import *
 from .ext import *
 
 
-def pretty_time(time: int | float) -> str:
-    """
-    Compresses time to a smaller value (seconds to minutes to hours to days etc.)
-    :param time: time in seconds
-    :return: time in whatevers
-    """
-
-    # seconds to minutes
-    new_time = time / 60
-    if new_time < 1:
-        return f"{time:.4f} seconds"
-    time = new_time
-
-    # minutes to hours
-    new_time = time / 60
-    if new_time < 1:
-        return f"{time:.4f} minutes"
-    time = new_time
-
-    # hours to days
-    new_time = time / 24
-    if new_time < 1:
-        return f"{time:.4f} hours"
-    time = new_time
-
-    # days to weeks
-    new_time = time / 7
-    if new_time < 1:
-        return f"{time:.4f} days"
-    time = new_time
-
-    # weeks to months
-    new_time = time / 4.345
-    if new_time < 1:
-        return f"{time:.4f} weeks"
-    time = new_time
-
-    # months to years (bruh)
-    new_time = time / 12
-    if new_time < 1:
-        return f"{time:.4f} months"
-
-    # just give up at this point
-    return f"{new_time:.4f} years"
-
-
 class Emulator:
     INCLUDED_LIBS: dict[str, ModuleType] = {
         "FileManager": FileManager,
@@ -513,19 +467,13 @@ class Emulator:
         :return:
         """
 
-        print(f"\n{'='*120}\n")
-        while True:
-            try:
+        # execute the code
+        try:
+            while True:
                 self.execute_step()
-            except StopIteration:
-                break
-            except IndexError:
-                print("WARN: program counter overflow; halted")
-                break
-            except KeyboardInterrupt:
-                break
-        print(f"\n\n{'='*120}\n")
-        print(f"Finished after : {self.instruction_counter} instructions")
-        print(f"Time in ticks  : {self.tick_counter} ticks")
-        print(f"Time in seconds: {self.tick_counter * 0.025:.4f} sec")
-        print(f"Compressed time: {pretty_time(self.tick_counter * 0.025)}")
+        except StopIteration:
+            self.print("INFO: program called an interrupt, which didn't have a response", end="")
+        except IndexError:
+            print("WARN: program counter overflow; halted", end="")
+        except KeyboardInterrupt:
+            self.print("INFO: program was interrupted by the user", end="")

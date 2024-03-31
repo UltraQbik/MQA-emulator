@@ -45,7 +45,7 @@ class DisplayManager:
         # create window image buffer and put it on canvas
         cls.IMAGE_BUFFER = PhotoImage(width=cls.WINDOW_WIDTH, height=cls.WINDOW_HEIGHT)
         canvas.create_image((cls.WINDOW_WIDTH//2, cls.WINDOW_HEIGHT//2),
-                                image=cls.IMAGE_BUFFER, state="normal")
+                            image=cls.IMAGE_BUFFER, state="normal")
 
     @classmethod
     def process(cls, emu):
